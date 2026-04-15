@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Profil Kesehatan</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #8ec5fc 0%, #e0c3fc 100%);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .glass-box {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 30px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+        }
+
+        h2,
+        h3 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        .error {
+            color: #e74c3c;
+            font-size: 12px;
+            display: none;
+            margin-top: -10px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="glass-box">
+        <h2>📋 Profil Kesehatan</h2>
+        <div id="errorMsg" class="error">Harap lengkapi semua data dengan benar!</div>
+
+        <input id="name" type="text" placeholder="Nama Lengkap" required>
+        <input id="age" type="number" placeholder="Umur" required min="1">
+        <select id="gender">
+            <option value="male">Laki-laki</option>
+            <option value="female">Perempuan</option>
+        </select>
+        <input id="height" type="number" placeholder="Tinggi (cm)" required min="50">
+        <input id="weight" type="number" placeholder="Berat (kg)" required min="10">
+        <select id="activity">
+            <option value="low">Aktivitas Rendah</option>
+            <option value="medium">Aktivitas Sedang</option>
+            <option value="high">Aktivitas Tinggi</option>
+        </select>
+
+        <h3>Riwayat Medis</h3>
+        <select id="diabetes">
+            <option value="false">Bebas Diabetes</option>
+            <option value="true">Ada Diabetes</option>
+        </select>
+        <select id="hipertensi">
+            <option value="false">Bebas Hipertensi</option>
+            <option value="true">Ada Hipertensi</option>
+        </select>
+        <select id="kolesterol">
+            <option value="false">Bebas Kolesterol</option>
+            <option value="true">Ada Kolesterol</option>
+        </select>
+        <select id="asamurat">
+            <option value="false">Bebas Asam Urat</option>
+            <option value="true">Ada Asam Urat</option>
+        </select>
+
+        <h3>Tujuan</h3>
+        <select id="goal">
+            <option value="diet">Diet (Defisit Kalori)</option>
+            <option value="maintain">Maintain (Jaga Berat)</option>
+            <option value="bulk">Bulk (Tambah Massa)</option>
+        </select>
+
+        <button onclick="save()">Simpan & Lanjutkan</button>
+    </div>
+
+    <script>
+        // Pre-fill jika sudah ada data
+        window.onload = () => {
+            const existing = JSON.parse(localStorage.getItem("profile"));
+            if (existing) {
+                document.getElementById('name').value = existing.name;
+                document.getElementById('age').value = existing.age;
+                document.getElementById('gender').value = existing.gender;
+                document.getElementById('height').value = existing.height;
+                document.getElementById('weight').value = existing.weight;
+                document.getElementById('activity').value = existing.activity;
+                document.getElementById('diabetes').value = existing.diabetes.toString();
+                document.getElementById('hipertensi').value = existing.hipertensi.toString();
+                document.getElementById('kolesterol').value = existing.kolesterol.toString();
+                document.getElementById('asamurat').value = existing.asamurat.toString();
+                document.getElementById('goal').value = existing.goal;
+            }
+        };
+
+        function save() {
+            const name = document.getElementById('name').value;
+            const age = document.getElementById('age').value;
+            const height = document.getElementById('height').value;
+            const weight = document.getElementById('weight').value;
+
+            // Simple Validation
+            if (!name || !age || !height || !weight || age <= 0) {
+                document.getElementById('errorMsg').style.display = 'block';
+                return;
+            }
+
+            const profile = {
+                name: name,
+                age: parseInt(age),
+                gender: document.getElementById('gender').value,
+                height: parseInt(height),
+                weight: parseInt(weight),
+                activity: document.getElementById('activity').value,
+                diabetes: document.getElementById('diabetes').value === "true",
+                hipertensi: document.getElementById('hipertensi').value === "true",
+                kolesterol: document.getElementById('kolesterol').value === "true",
+                asamurat: document.getElementById('asamurat').value === "true",
+                goal: document.getElementById('goal').value
+            };
+
+            localStorage.setItem("profile", JSON.stringify(profile));
+            window.location.href = "main.html";
+        }
+    </script>
+</body>
+
+</html>

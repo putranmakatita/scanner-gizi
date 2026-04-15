@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Laporan Kesehatan</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #8ec5fc 0%, #e0c3fc 100%);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .glass-box {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            padding: 20px;
+            margin: 0 auto;
+            width: 100%;
+            max-width: 500px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+        }
+
+        h2 {
+            margin-top: 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .btn-back {
+            text-decoration: none;
+            color: #3498db;
+            font-size: 16px;
+        }
+
+        .history-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            border-left: 5px solid #3498db;
+        }
+
+        .date {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .ocr-preview {
+            font-size: 12px;
+            color: #95a5a6;
+            margin-bottom: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .analysis {
+            font-size: 14px;
+            line-height: 1.4;
+            color: #2c3e50;
+        }
+
+        .empty {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+            margin-top: 30px;
+        }
+
+        button.clear-btn {
+            width: 100%;
+            padding: 10px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="glass-box">
+        <h2>
+            <span>📊 Riwayat Konsumsi</span>
+            <a href="main.html" class="btn-back">⬅ Kembali</a>
+        </h2>
+
+        <div id="historyContainer"></div>
+
+        <button class="clear-btn" onclick="clearHistory()">Hapus Semua Riwayat</button>
+    </div>
+
+    <script>
+        // Session Check
+        if (!localStorage.getItem("profile")) window.location.href = "profile.html";
+
+        function loadHistory() {
+            const container = document.getElementById("historyContainer");
+            const history = JSON.parse(localStorage.getItem("history")) || [];
+
+            if (history.length === 0) {
+                container.innerHTML = "<div class='empty'>Belum ada data konsumsi yang dicatat. Mulai scan makananmu!</div>";
+                return;
+            }
+
+            // Reverse agar yang terbaru di atas
+            container.innerHTML = history.reverse().map(item => `
+                <div class="history-card">
+                <div class="date">🕒 ${item.date}</div>
+                <div class="ocr-preview">Teks: ${item.ocr}</div>
+                <div class="analysis">${item.analysis.substring(0, 150)}...</div>
+                </div>
+            `).join('');
+        }
+
+        function clearHistory() {
+            if (confirm("Yakin ingin menghapus seluruh riwayat konsumsi?")) {
+                localStorage.removeItem("history");
+                loadHistory();
+            }
+        }
+
+        window.onload = loadHistory;
+    </script>
+</body>
+
+</html>

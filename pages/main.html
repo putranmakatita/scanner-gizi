@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Scanner Gizi - Hybrid Local & API</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="localDataNutrition.js"></script>
+    <style>
+        /* CSS tetap sama dengan versi sebelumnya */
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #8ec5fc 0%, #e0c3fc 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .glass-box {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(15px);
+            padding: 25px;
+            margin: 0 auto;
+            width: 100%;
+            max-width: 450px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-icons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        video,
+        canvas,
+        #barcode-reader {
+            width: 100%;
+            border-radius: 12px;
+            background: #2c3e50;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        button {
+            padding: 14px;
+            margin-top: 8px;
+            width: 100%;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-barcode {
+            background: #e67e22;
+            color: white;
+        }
+
+        .btn-success {
+            background: #2ecc71;
+            color: white;
+            margin-top: 15px;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        #loading {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        .result {
+            text-align: left;
+            margin-top: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="glass-box">
+        <div class="header-icons">
+            <h2 style="margin:0; color:#2c3e50;">🔍 Scanner AI</h2>
+            <div>
+                <a href="report.html" style="text-decoration:none; font-size:24px;">📊</a>
+                <a href="profile.html" style="text-decoration:none; font-size:24px; margin-left:10px;">👤</a>
+            </div>
+        </div>
+
+        <div id="camera-section">
+            <video id="video" autoplay playsinline></video>
+            <div id="barcode-reader" class="hidden"></div>
+            <canvas id="canvas" class="hidden"></canvas>
+        </div>
+
+        <div id="actionButtons">
+            <button id="btnStart" class="btn-primary" onclick="startCamera()">1. Aktifkan Kamera</button>
+            <div id="scanOptions" class="hidden" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                <button class="btn-primary" onclick="captureAndAnalyze()" style="flex: 1;">📷 Scan Teks</button>
+                <button class="btn-barcode" onclick="startBarcodeScanner()" style="flex: 1;">🏷️ Barcode</button>
+                <button id="btnStopBarcode" class="btn-danger hidden" onclick="stopBarcodeScanner()"
+                    style="flex: 1 1 100%;">Batal Scan</button>
+            </div>
+        </div>
+
+        <div id="loading" class="hidden">⌛ Memproses data...</div>
+
+        <div class="result hidden" id="outputBox">
+            <strong id="dataSource" style="color:#e67e22; font-size: 10px; display: block; margin-bottom: 5px;">DATABASE
+                LOKAL</strong>
+            <div id="ocrText"
+                style="color:#95a5a6; font-size:11px; margin-bottom: 10px; border-bottom: 1px solid #eee;"></div>
+            <div id="aiResult" style="line-height: 1.6; white-space: pre-wrap;"></div>
+        </div>
+
+        <button id="consumeBtn" class="btn-success hidden" onclick="saveHistory()">Catat Konsumsi Ini</button>
+    </div>
+
+    <script>
+        const profile = JSON.parse(localStorage.getItem("profile")) || { name: "User", diabetes: false, hipertensi: false };
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const loading = document.getElementById('loading');
+        const outputBox = document.getElementById('outputBox');
+        const aiDisplay = document.getElementById('aiResult');
+        const consumeBtn = document.getElementById('consumeBtn');
+        const scanOptions = document.getElementById('scanOptions');
+        const barcodeReader = document.getElementById('barcode-reader');
+
+        let html5QrCode;
+        let finalAnalysis = "";
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                video.srcObject = stream;
+                document.getElementById('btnStart').classList.add('hidden');
+                scanOptions.classList.remove('hidden');
+            } catch (err) { alert("Akses kamera ditolak."); }
+        }
+
+        async function startBarcodeScanner() {
+            video.classList.add('hidden');
+            barcodeReader.classList.remove('hidden');
+            document.getElementById('btnStopBarcode').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("barcode-reader");
+            await html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
+                stopBarcodeScanner();
+                fetchFoodData(text);
+            });
+        }
+
+        async function stopBarcodeScanner() {
+            if (html5QrCode) { await html5QrCode.stop(); await html5QrCode.clear(); }
+            barcodeReader.classList.add('hidden');
+            video.classList.remove('hidden');
+            document.getElementById('btnStopBarcode').classList.add('hidden');
+        }
+
+        async function fetchFoodData(barcode) {
+            showLoading("🔍 Mencari Barcode: " + barcode);
+
+            // 1. CEK DATABASE LOKAL (Prioritas Utama)
+            if (typeof localDataNutrition !== 'undefined' && localDataNutrition[barcode]) {
+                document.getElementById('dataSource').innerText = "✅ DATABASE LOKAL";
+                runSmartAnalysis(localDataNutrition[barcode]);
+                loading.classList.add("hidden");
+                return;
+            }
+
+            // 2. CEK API JIKA LOKAL TIDAK ADA (Fallback)
+            try {
+                const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`);
+                const data = await res.json();
+                if (data.status === 1) {
+                    document.getElementById('dataSource').innerText = "🌐 DATABASE ONLINE";
+                    const n = data.product.nutriments;
+                    runSmartAnalysis({
+                        nama: data.product.product_name || "Produk Online",
+                        gula: n.sugars_100g || 0,
+                        lemak: n.fat_100g || 0,
+                        natrium: n.sodium_100g ? n.sodium_100g * 1000 : 0
+                    });
+                } else {
+                    alert("Barcode tidak terdaftar. Silakan gunakan Scan Teks.");
+                }
+            } catch (e) {
+                alert("Offline. Gunakan Scan Teks (OCR).");
+            } finally {
+                loading.classList.add("hidden");
+            }
+        }
+
+        async function captureAndAnalyze() {
+            const ctx = canvas.getContext("2d");
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            showLoading("⌛ Membaca Teks...");
+            try {
+                const result = await Tesseract.recognize(canvas, 'eng+ind');
+                document.getElementById('dataSource').innerText = "📷 HASIL SCAN TEKS";
+                runSmartAnalysis({
+                    nama: "Produk (Scan Kamera)",
+                    gula: extractValue(['gula', 'sugar'], result.data.text),
+                    lemak: extractValue(['lemak', 'fat'], result.data.text),
+                    natrium: extractValue(['natrium', 'sodium'], result.data.text)
+                });
+            } catch (e) { alert("OCR Gagal."); }
+            loading.classList.add("hidden");
+        }
+
+        function extractValue(keys, text) {
+            const pattern = new RegExp(`(?:${keys.join('|')})[^\\d]*(\\d+(?:[.,]\\d+)?)`, 'i');
+            const match = text.match(pattern);
+            return match ? parseFloat(match[1].replace(',', '.')) : 0;
+        }
+
+        function runSmartAnalysis(data) {
+            let score = 100;
+            let report = `**PRODUK:** ${data.nama}\n`;
+            report += `Gula: ${data.gula}g | Lemak: ${data.lemak}g | Natrium: ${data.natrium}mg\n\n`;
+
+            if (data.gula > 15) { report += "❌ Gula Tinggi\n"; score -= 20; }
+            if (data.natrium > 400) { report += "❌ Natrium Tinggi\n"; score -= 20; }
+            if (profile.diabetes && data.gula > 5) { report += "⚠ Bahaya Diabetes\n"; score -= 40; }
+
+            let status = score >= 80 ? "AMAN" : score >= 50 ? "BATASI" : "HINDARI";
+            report += `\n**SKOR:** ${Math.max(score, 0)}/100\n**STATUS:** ${status}`;
+
+            finalAnalysis = report;
+            aiDisplay.innerHTML = report.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+            outputBox.classList.remove("hidden");
+            consumeBtn.classList.remove("hidden");
+        }
+
+        function showLoading(msg) {
+            loading.innerText = msg; loading.classList.remove("hidden");
+            outputBox.classList.add("hidden"); consumeBtn.classList.add("hidden");
+        }
+
+        function saveHistory() {
+            const history = JSON.parse(localStorage.getItem("history")) || [];
+            history.push({ date: new Date().toLocaleString(), analysis: finalAnalysis });
+            localStorage.setItem("history", JSON.stringify(history));
+            alert("Tersimpan!");
+            window.location.href = "report.html";
+        }
+    </script>
+</body>
+
+</html>
