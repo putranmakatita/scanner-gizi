@@ -7,7 +7,7 @@
     <title>AI Scanner Gizi - Hybrid Local & API</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <script src="pages/localDataNutrition.js"></script>
+    <script src="../assets/localDataNutrition.js"></script>
     <style>
         /* CSS tetap sama dengan versi sebelumnya */
         body {
@@ -107,8 +107,8 @@
         <div class="header-icons">
             <h2 style="margin:0; color:#2c3e50;">🔍 Scanner AI</h2>
             <div>
-                <a href="pages/report.html" style="text-decoration:none; font-size:24px;">📊</a>
-                <a href="pages/profile.html" style="text-decoration:none; font-size:24px; margin-left:10px;">👤</a>
+                <a href="report.html" style="text-decoration:none; font-size:24px;">📊</a>
+                <a href="profile.html" style="text-decoration:none; font-size:24px; margin-left:10px;">👤</a>
             </div>
         </div>
 
@@ -268,7 +268,7 @@
             history.push({ date: new Date().toLocaleString(), analysis: finalAnalysis });
             localStorage.setItem("history", JSON.stringify(history));
             alert("Tersimpan!");
-            window.location.href = "pages/report.html";
+            window.location.href = "report.html";
         }
     </script>
 </body>
